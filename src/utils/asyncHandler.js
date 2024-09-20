@@ -1,4 +1,4 @@
-import { promise } from "bcrypt/promises"
+// import { promise } from "bcrypt/promises"
 
 const asyncHandler =(requestHandler)=>{
     (req,res,next)=>{
