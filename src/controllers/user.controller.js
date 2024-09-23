@@ -3,6 +3,7 @@ import { apiError } from '../utils/apiError.js'
 import { User } from '../models/user.model.js';
 import { uploadOnCloudinary } from '../utils/fileUpload.js'
 import { apiResponse } from '../utils/apiResponse.js';
+
 const registerUser = asyncHandler(async (req, res) => {
 
     //get user details from frontend
@@ -16,12 +17,9 @@ const registerUser = asyncHandler(async (req, res) => {
     //return res
 
     const { fullName, email, username, password } = req.body;
-    console.log('email: ', email)
-
+    
     //validate-not empty
-    if ([fullName, email, username, password].some((field) => {
-        field?.trim() === ''
-    })) {
+    if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
         throw new apiError(400, "All fields are required!")
     };
 
@@ -37,7 +35,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
     //check for images, avatar
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    console.log(avatarLocalPath)
     const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
     if (!avatarLocalPath) {
@@ -48,13 +45,14 @@ const registerUser = asyncHandler(async (req, res) => {
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
+
     if (!avatar) {
         throw new apiError(400, "avatar uploading failed!!")
     }
 
 
     //create user object - create entry in db
-    const user = User.create({
+    const user = await User.create({
         fullName,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
@@ -65,7 +63,9 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
     //remove password and refresh token field from response
-    const createdUser = await user.findById(user._id).select("-password -refreshToken")
+    const createdUser = await User.findById(user._id).select(
+        "-password -refreshToken"
+    )
 
     //check for user creation
     if (!createdUser) {
