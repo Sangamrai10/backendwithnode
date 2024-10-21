@@ -17,7 +17,7 @@ const registerUser = asyncHandler(async (req, res) => {
     //return res
 
     const { fullName, email, username, password } = req.body;
-    
+
     //validate-not empty
     if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
         throw new apiError(400, "All fields are required!")
@@ -78,5 +78,72 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
+const generateAccessAndRefreshToken = async (user) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
 
-export { registerUser }
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+        return {
+            accessToken,
+            refreshToken
+        }
+    } catch (error) {
+        throw new apiError(500, error.message)
+    }
+}
+
+
+const loginUser = asyncHandler(async (req, res) => {
+    //req body - email password
+    const { email, username, password } = req.body
+
+
+    //username or email
+    if (!(username || email)) {
+        throw new apiError(400, "Username or email is required!")
+    }
+
+    //find the user
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+
+    })
+
+
+    //check if user exists
+    if (!user) {
+        throw new apiError(404, "User not found!")
+    }
+
+
+    //password check
+    const isPasswordValid = await user.isPasswordCorrect(password)
+    if (!isPasswordValid) {
+        throw new apiError(400, "Invalid password!")
+    }
+
+
+    //generate access and refresh token
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user)
+
+    // send cookies
+    const loggedInUser= User.findById(user._id).select("-password -refreshToken")
+    
+    const option ={
+        httpOnly: true,
+        secure: true,
+    }
+    return res.status(200)
+    .coookie("accessToken", accessToken, option)
+    .coookie("refreshToken", refreshToken, option)
+    .json(new apiResponse(200,{
+        user:loggedInUser, accessToken, refreshToke
+        }),
+    "User logged in successfully!!")
+})
+
+export { registerUser, loginUser }
