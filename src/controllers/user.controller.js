@@ -165,7 +165,7 @@ const logOutUser = asyncHandler(async (req, res) => {
     return res.status(200)
         .clearCookie("accessToken", option)
         .clearCookie("refreshToken", option)
-        .json(new apiResponse(200, "User logged out success!"))
+        .json(new apiResponse(200,{}, "User logged out success!"))
 })
 
 const refreshAccessToken = asyncHandler(async (req, res,) => {
@@ -221,7 +221,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     if (!isPasswordCorrect) {
         throw new apiError(401, "Invalid old password")
     }
-    user.password = password
+    user.password = newPassword
     await user.save({ validateBeforeSave: false })
 
     return res.status(200)
